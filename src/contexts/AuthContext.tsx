@@ -129,15 +129,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await axios.post(
         `${API_BASE_URL}/auth/login`, 
         { email, password },
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
       );
       
-      const { user: userData } = response.data;
+      const { user: userData, token } = response.data;
       
       // Save user to state and localStorage
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
-      // No need to store token in localStorage with session cookies
+      
+      // Store the entire login response for the API interceptor to use
+      localStorage.setItem("loginResponse", JSON.stringify(response.data));
+      
+      // Also store token separately for redundancy
+      if (token) {
+        localStorage.setItem("token", token);
+        console.log('Token stored in localStorage:', token.substring(0, 15) + '...');
+      }
+      
+      // Check for token in Authorization header
+      const authHeader = response.headers?.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const headerToken = authHeader.substring(7);
+        localStorage.setItem("token", headerToken);
+        console.log('Token extracted from Authorization header');
+      }
       
       // Connect socket and authenticate
       socket.connect();
@@ -184,6 +206,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } finally {
       // Clean up even if API fails
       localStorage.removeItem("user");
+      localStorage.removeItem("loginResponse");
       setUser(null);
       
       // Disconnect socket

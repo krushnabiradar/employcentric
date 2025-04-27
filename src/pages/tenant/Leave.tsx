@@ -153,6 +153,10 @@ const LeaveManagement = () => {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
           reason,
+          userName: user?.name,
+          tenantId: user?.tenantId,
+          employeeId: user?.employeeId,
+          userId: user?.id,
         },
         { withCredentials: true }
       );

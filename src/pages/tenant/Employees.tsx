@@ -67,10 +67,35 @@ const Employees = () => {
   const fetchEmployees = async () => {
     try {
       setIsLoading(true);
-      const data = await employeeApi.getEmployees();
-      setEmployees(data);
+      // Use the correct API method name (getEmployees)
+      const response = await employeeApi.getEmployees();
+      
+      // Log the response data for debugging
+      console.log('Employee data received:', response);
+      
+      // Handle the response data structure based on your API response format
+      // Your API returns { success: true, data: [...] }
+      if (response && response.data && Array.isArray(response.data)) {
+        setEmployees(response.data);
+      } else if (response && Array.isArray(response)) {
+        // Handle case where API might return the array directly
+        setEmployees(response);
+      } else if (response && response.success && Array.isArray(response.data)) {
+        // Handle case where API returns { success: true, data: [...] }
+        setEmployees(response.data);
+      } else {
+        // If we got a response but it's not in the expected format
+        console.error('Unexpected data format:', response);
+        setEmployees([]);
+        toast({
+          title: "Data Format Error",
+          description: "Received employee data in an unexpected format.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch employees:", error);
+      setEmployees([]);
       toast({
         title: "Error",
         description: "Failed to load employees. Please try again.",

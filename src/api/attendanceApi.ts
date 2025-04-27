@@ -30,9 +30,9 @@ export interface AttendanceStats {
 
 export const attendanceApi = {
   // Get today's attendance
-  getTodayAttendance: async (): Promise<AttendanceRecord[]> => {
+  getTodayAttendance: async (tenantId: string): Promise<AttendanceRecord[]> => {
     try {
-      const response = await api.get('/attendance/today');
+      const response = await api.get(`/attendance/today?tenantId=${tenantId}`);
       return response.data.data;
     } catch (error) {
       console.error('Failed to fetch today attendance:', error);
@@ -41,10 +41,10 @@ export const attendanceApi = {
   },
 
   // Get monthly attendance for a specific employee
-  getMonthlyAttendance: async (employeeId: string, date?: Date): Promise<AttendanceRecord[]> => {
+  getMonthlyAttendance: async (employeeId: string, tenantId: string, date?: Date): Promise<AttendanceRecord[]> => {
     try {
-      const params = date ? `?date=${date.toISOString()}` : '';
-      const response = await api.get(`/attendance/${employeeId}${params}`);
+      const dateParam = date ? `date=${date.toISOString()}&` : '';
+      const response = await api.get(`/attendance/${employeeId}?${dateParam}tenantId=${tenantId}`);
       return response.data.data;
     } catch (error) {
       console.error('Failed to fetch monthly attendance:', error);
@@ -53,22 +53,22 @@ export const attendanceApi = {
   },
 
   // Check in
-  checkIn: async (employeeId: string): Promise<AttendanceRecord> => {
-    const response = await api.post('/attendance/check-in', { employeeId });
+  checkIn: async (employeeId: string, tenantId: string): Promise<AttendanceRecord> => {
+    const response = await api.post('/attendance/check-in', { employeeId, tenantId });
     return response.data.data;
   },
 
   // Check out
-  checkOut: async (employeeId: string): Promise<AttendanceRecord> => {
-    const response = await api.post('/attendance/check-out', { employeeId });
+  checkOut: async (employeeId: string, tenantId: string): Promise<AttendanceRecord> => {
+    const response = await api.post('/attendance/check-out', { employeeId, tenantId });
     return response.data.data;
   },
 
   // Get attendance stats
-  getAttendanceStats: async (date?: Date): Promise<AttendanceStats> => {
+  getAttendanceStats: async (tenantId: string, date?: Date): Promise<AttendanceStats> => {
     try {
-      const params = date ? `?date=${date.toISOString()}` : '';
-      const response = await api.get(`/attendance/stats${params}`);
+      const dateParam = date ? `date=${date.toISOString()}&` : '';
+      const response = await api.get(`/attendance/stats?${dateParam}tenantId=${tenantId}`);
       return response.data.data;
     } catch (error) {
       console.error('Failed to fetch attendance stats:', error);

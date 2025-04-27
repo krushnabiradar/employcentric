@@ -9,9 +9,14 @@ exports.getTodayAttendance = async (req, res) => {
     const startOfToday = startOfDay(today);
     const endOfToday = endOfDay(today);
 
-    const attendances = await Attendance.find({
+    const { tenantId } = req.query;
+    const query = {
       date: { $gte: startOfToday, $lte: endOfToday }
-    }).populate('employeeId', 'name email avatar');
+    };
+    if (tenantId) query.tenantId = tenantId;
+
+    const attendances = await Attendance.find(query)
+      .populate('employeeId', 'name email avatar');
 
     res.status(200).json({ success: true, data: attendances });
   } catch (error) {
@@ -54,6 +59,7 @@ exports.checkIn = async (req, res) => {
     if (!attendance) {
       attendance = new Attendance({
         employeeId,
+        tenantId: req.body.tenantId,
         date: today,
         status: 'present'
       });

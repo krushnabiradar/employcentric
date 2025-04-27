@@ -4,6 +4,7 @@ const passport = require("passport");
 const User = require("../models/User");
 const Tenant = require("../models/Tenant");
 const logger = require("../utils/logger");
+const Employee = require("../models/Employee");
 
 const authController = {
   // Register a new user
@@ -85,7 +86,7 @@ const authController = {
       // For non-superadmin users, verify tenant
       if (user.role !== "superadmin") {
         const tenant = await Tenant.findById(user.tenantId);
-        if (!tenant || tenant.status !== "Active") {
+        if (!tenant || tenant.status.toLowerCase() !== "active") {
           return res.status(401).json({ error: "Tenant is inactive" });
         }
       }
@@ -99,22 +100,61 @@ const authController = {
         expiresIn: "24h",
       });
 
-      // Set the token as an HTTP-only cookie
-      res.cookie("token", token, {
+      // Set token in both cookie and response body
+      // Use res.cookie instead of manually setting header for better compatibility
+      res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        path: '/',
+        sameSite: 'lax', // Use 'lax' for development (works with http)
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+        secure: process.env.NODE_ENV === 'production', // Only secure in production
+        domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
       });
 
+      // Log cookie settings
+      console.log('Setting auth cookie with options:', {
+        httpOnly: true,
+        path: '/',
+        sameSite: 'lax',
+        maxAge: '24 hours'
+      });
+
+      // Set CORS and security headers
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Expose-Headers', 'Authorization');
+      res.setHeader('Authorization', `Bearer ${token}`);
+
+      // Log response details
+      console.log("Auth response:", {
+        token: token.substring(0, 10) + "...",
+        headers: res.getHeaders(),
+        user: {
+          id: user._id,
+          role: user.role
+        }
+      });
+
+      let employeeId = null;
+      try {
+        const employeeRecord = await Employee.findOne({ user: user._id });
+        if (employeeRecord) {
+          employeeId = employeeRecord._id;
+        }
+      } catch (err) {
+        console.error("Error fetching employee record:", err);
+      }
+      
+      // Then include employeeId in your response:
       res.json({
+        token, // Include token in response body
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
           role: user.role,
           tenantId: user.tenantId,
-        },
+          employeeId: employeeId, // <-- Add this line
+        }
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -128,9 +168,12 @@ const authController = {
       // Clear the JWT cookie
       res.clearCookie("token", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: false,
+        sameSite: "lax",
+        path: "/"
       });
+      
+      console.log('Clearing auth cookie');
 
       // If you're tracking sessions or want to update last logout time
       if (req.user) {

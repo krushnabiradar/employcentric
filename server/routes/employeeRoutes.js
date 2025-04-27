@@ -13,7 +13,7 @@ const {
 // All routes are protected and only accessible by admin or HR
 router
   .route('/')
-  .get(protect(['admin', 'hr']), getAllEmployees)
+  .get(protect(['admin', 'hr', 'manager']), getAllEmployees)
   .post(protect(['admin', 'hr']), createEmployee);
 
 router
