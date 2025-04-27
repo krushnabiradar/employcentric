@@ -2,37 +2,45 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Tenant = require('../models/Tenant');
-
+require('../config/passport')(); 
 // Combined authentication and authorization middleware
 exports.protect = (roles) => {
   return (req, res, next) => {
-    // First authenticate using JWT
-    passport.authenticate('jwt', { session: false }, (err, user, info) => {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-      
-      if (!user) {
-        return res.status(401).json({ message: 'Unauthorized access' });
-      }
+    // Get token from cookie instead of Authorization header
+    const token = req.cookies.token;
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized access' });
+    }
 
-      // If roles are specified, check authorization
-      if (roles) {
-        // Handle both array and single string role arguments
-        const allowedRoles = Array.isArray(roles) ? roles : [roles];
-        
-        // Check if user has the required role
-        if (!user.role || !allowedRoles.includes(user.role)) {
-          return res.status(403).json({ 
-            message: `Forbidden: Access denied. Required role(s): ${allowedRoles.join(', ')}` 
-          });
-        }
-      }
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      User.findById(decoded.userId)
+        .then(user => {
+          if (!user) {
+            return res.status(401).json({ message: 'Unauthorized access' });
+          }
 
-      // Attach user to request and proceed
-      req.user = user;
-      next();
-    })(req, res, next);
+          // If roles are specified, check authorization
+          if (roles) {
+            const allowedRoles = Array.isArray(roles) ? roles : [roles];
+            if (!user.role || !allowedRoles.includes(user.role)) {
+              return res.status(403).json({ 
+                message: `Forbidden: Access denied. Required role(s): ${allowedRoles.join(', ')}` 
+              });
+            }
+          }
+
+          req.user = user;
+          next();
+        })
+        .catch(err => {
+          console.error('Error finding user:', err);
+          return res.status(401).json({ message: 'Unauthorized access' });
+        });
+    } catch (err) {
+      return res.status(401).json({ message: 'Unauthorized access' });
+    }
   };
 };
 

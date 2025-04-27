@@ -1,9 +1,9 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const passport = require('passport');
-const User = require('../models/User');
-const Tenant = require('../models/Tenant');
-const logger = require('../utils/logger');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const passport = require("passport");
+const User = require("../models/User");
+const Tenant = require("../models/Tenant");
+const logger = require("../utils/logger");
 
 const authController = {
   // Register a new user
@@ -14,14 +14,14 @@ const authController = {
       // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
+        return res.status(400).json({ error: "User already exists" });
       }
 
       // For non-superadmin users, verify tenant
-      if (role !== 'superadmin') {
+      if (role !== "superadmin") {
         const tenant = await Tenant.findById(tenantId);
         if (!tenant) {
-          return res.status(400).json({ error: 'Invalid tenant' });
+          return res.status(400).json({ error: "Invalid tenant" });
         }
       }
 
@@ -34,18 +34,16 @@ const authController = {
         email,
         password: hashedPassword,
         role,
-        tenantId: role !== 'superadmin' ? tenantId : null,
-        isActive: true
+        tenantId: role !== "superadmin" ? tenantId : null,
+        isActive: true,
       });
 
       await user.save();
 
       // Generate token
-      const token = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
 
       res.status(201).json({
         user: {
@@ -53,9 +51,9 @@ const authController = {
           name: user.name,
           email: user.email,
           role: user.role,
-          tenantId: user.tenantId
+          tenantId: user.tenantId,
         },
-        token
+        token,
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -70,25 +68,25 @@ const authController = {
       // Find user
       const user = await User.findOne({ email });
       if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // Check if user is active
       if (!user.isActive) {
-        return res.status(401).json({ error: 'Account is inactive' });
+        return res.status(401).json({ error: "Account is inactive" });
       }
 
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // For non-superadmin users, verify tenant
-      if (user.role !== 'superadmin') {
+      if (user.role !== "superadmin") {
         const tenant = await Tenant.findById(user.tenantId);
-        if (!tenant || tenant.status !== 'active') {
-          return res.status(401).json({ error: 'Tenant is inactive' });
+        if (!tenant || tenant.status !== "Active") {
+          return res.status(401).json({ error: "Tenant is inactive" });
         }
       }
 
@@ -97,11 +95,17 @@ const authController = {
       await user.save();
 
       // Generate token
-      const token = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
+
+      // Set the token as an HTTP-only cookie
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
 
       res.json({
         user: {
@@ -109,27 +113,59 @@ const authController = {
           name: user.name,
           email: user.email,
           role: user.role,
-          tenantId: user.tenantId
+          tenantId: user.tenantId,
         },
-        token
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
+    }
+  }, // <-- This closing b
+  //
+  //
+  // // Add this to your authController object
+  async logout(req, res) {
+    try {
+      // Clear the JWT cookie
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
+
+      // If you're tracking sessions or want to update last logout time
+      if (req.user) {
+        const user = await User.findById(req.user._id);
+        if (user) {
+          user.lastLogout = new Date();
+          await user.save();
+        }
+      }
+
+      // Send success response
+      res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+      logger.error("Logout error:", error);
+      res.status(500).json({ error: "Error during logout" });
     }
   },
 
   // Get current user
   async getCurrentUser(req, res) {
     try {
-      const user = await User.findById(req.user._id)
-        .select('-password')
-        .populate('tenantId', 'name company status');
-
+      const user = req.user;
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(401).json({ message: "User not found" });
       }
 
-      res.json(user);
+      res.json({
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId,
+        },
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -142,7 +178,7 @@ const authController = {
       const user = await User.findById(req.user._id);
 
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ error: "User not found" });
       }
 
       // Update name and email
@@ -153,7 +189,9 @@ const authController = {
       if (currentPassword && newPassword) {
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
-          return res.status(401).json({ error: 'Current password is incorrect' });
+          return res
+            .status(401)
+            .json({ error: "Current password is incorrect" });
         }
         user.password = await bcrypt.hash(newPassword, 10);
       }
@@ -165,7 +203,7 @@ const authController = {
         name: user.name,
         email: user.email,
         role: user.role,
-        tenantId: user.tenantId
+        tenantId: user.tenantId,
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -184,7 +222,7 @@ const authController = {
       }
 
       // For non-superadmin users, only show users from their tenant
-      if (req.user.role !== 'superadmin') {
+      if (req.user.role !== "superadmin") {
         query.tenantId = req.user.tenantId;
       } else if (tenantId) {
         // Superadmin can filter by tenant
@@ -192,8 +230,8 @@ const authController = {
       }
 
       const users = await User.find(query)
-        .select('-password')
-        .populate('tenantId', 'name company status');
+        .select("-password")
+        .populate("tenantId", "name company status");
 
       res.json(users);
     } catch (error) {
@@ -210,17 +248,22 @@ const authController = {
       // Find user
       const user = await User.findById(id);
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ error: "User not found" });
       }
 
       // Check if user has permission to update this user
-      if (req.user.role !== 'superadmin' && user.tenantId.toString() !== req.user.tenantId.toString()) {
-        return res.status(403).json({ error: 'Not authorized to update this user' });
+      if (
+        req.user.role !== "superadmin" &&
+        user.tenantId.toString() !== req.user.tenantId.toString()
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Not authorized to update this user" });
       }
 
       // Prevent deactivating superadmin
-      if (user.role === 'superadmin' && !isActive) {
-        return res.status(403).json({ error: 'Cannot deactivate superadmin' });
+      if (user.role === "superadmin" && !isActive) {
+        return res.status(403).json({ error: "Cannot deactivate superadmin" });
       }
 
       user.isActive = isActive;
@@ -232,12 +275,12 @@ const authController = {
         email: user.email,
         role: user.role,
         tenantId: user.tenantId,
-        isActive: user.isActive
+        isActive: user.isActive,
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 };
 
 module.exports = authController;
