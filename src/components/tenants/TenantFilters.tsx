@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,31 +60,23 @@ export function TenantFilters({ onSearch, onFilterChange }: TenantFiltersProps) 
   };
 
   return (
-    <div className="flex flex-col space-y-4 md:flex-row md:items-center md:space-x-4 md:space-y-0">
-      <form 
-        onSubmit={handleSearch} 
-        className="flex-1 md:max-w-sm"
-      >
+    <div className="flex flex-col sm:flex-row gap-4">
+      <form onSubmit={handleSearch} className="flex-1">
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tenants..."
-            className="pl-8"
+            className="pl-8 w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </form>
-
-      <div className="flex flex-wrap gap-2">
+      
+      <div className="flex flex-col sm:flex-row gap-2">
         <Popover open={planOpen} onOpenChange={setPlanOpen}>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={planOpen}
-              className="justify-between"
-            >
+            <Button variant="outline" role="combobox" className="w-full sm:w-[200px] justify-between">
               {selectedPlan.label}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -119,12 +110,7 @@ export function TenantFilters({ onSearch, onFilterChange }: TenantFiltersProps) 
 
         <Popover open={statusOpen} onOpenChange={setStatusOpen}>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={statusOpen}
-              className="justify-between"
-            >
+            <Button variant="outline" role="combobox" className="w-full sm:w-[200px] justify-between">
               {selectedStatus.label}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -155,8 +141,6 @@ export function TenantFilters({ onSearch, onFilterChange }: TenantFiltersProps) 
             </Command>
           </PopoverContent>
         </Popover>
-
-        <Button variant="outline">Export</Button>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -149,8 +148,8 @@ export function TenantForm({
                 <TabsTrigger value="admin">Admin User</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="tenant" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="tenant" className="space-y-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="name"
@@ -180,7 +179,7 @@ export function TenantForm({
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="email"
@@ -188,7 +187,7 @@ export function TenantForm({
                       <FormItem>
                         <FormLabel>Contact Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="contact@acme.com" {...field} />
+                          <Input type="email" placeholder="contact@acme.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -200,9 +199,9 @@ export function TenantForm({
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Contact Phone</FormLabel>
+                        <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="+1 (555) 123-4567" {...field} />
+                          <Input placeholder="+1 (555) 000-0000" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -216,10 +215,7 @@ export function TenantForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subscription Plan</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value || "basic"}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a plan" />
@@ -235,86 +231,50 @@ export function TenantForm({
                     </FormItem>
                   )}
                 />
-                
-                <FormField
-                  control={form.control}
-                  name="industry"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industry</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Technology, Healthcare, etc." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main St, City, Country" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </TabsContent>
               
-              <TabsContent value="admin" className="space-y-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="adminName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Admin Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        This will be the primary administrator for this tenant.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="adminEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Admin Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="admin@acme.com" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        This email will be used for login and notifications.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <TabsContent value="admin" className="space-y-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="adminName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="adminEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="john@acme.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <FormField
                   control={form.control}
                   name="adminPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Temporary Password</FormLabel>
+                      <FormLabel>Admin Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="••••••••" 
-                          {...field} 
-                        />
+                        <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
                       <FormDescription>
-                        The admin user will be required to change this on first login.
+                        Password must be at least 8 characters long
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -324,11 +284,11 @@ export function TenantForm({
             </Tabs>
             
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={onClose}>
+              <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Creating..." : "Create Tenant"}
+              <Button type="submit">
+                Create Tenant
               </Button>
             </DialogFooter>
           </form>

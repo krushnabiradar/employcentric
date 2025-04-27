@@ -60,103 +60,161 @@ const TenantApprovals = () => {
   };
   
   return (
-  
-      <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tenant Approvals</h1>
-          <p className="text-muted-foreground">
-            Review and approve new tenant registrations
-          </p>
-        </div>
+    <div className="space-y-4 p-4">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tenant Approvals</h1>
+        <p className="text-muted-foreground">
+          Review and approve new tenant registrations
+        </p>
+      </div>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeRequests.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Waiting for review
+            </p>
+          </CardContent>
+        </Card>
         
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeRequests.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Waiting for review
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved (Last 30 days)</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{recentApprovals.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Recently approved tenants
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejected (Last 30 days)</CardTitle>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{recentRejections.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Recently rejected requests
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved (Last 30 days)</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{recentApprovals.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Recently approved tenants
+            </p>
+          </CardContent>
+        </Card>
         
-        <Tabs defaultValue="pending">
-          <TabsList>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="rejected">Rejected</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="pending">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle>Pending Requests</CardTitle>
-                    <CardDescription>
-                      Review and approve new tenant registrations
-                    </CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filter
-                  </Button>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected (Last 30 days)</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{recentRejections.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Recently rejected requests
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="approved">Approved</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="pending">
+          <Card className="overflow-hidden">
+            <CardHeader className="px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <CardTitle>Pending Requests</CardTitle>
+                  <CardDescription>
+                    Review and approve new tenant registrations
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {activeRequests.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Company</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Requested</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {activeRequests.map((request) => (
-                        <TableRow key={request.id}>
-                          <TableCell className="font-medium">
-                            {request.company}
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{request.name}</div>
-                            <div className="text-sm text-muted-foreground">{request.email}</div>
-                            <div className="text-sm text-muted-foreground">{request.phone}</div>
-                          </TableCell>
-                          <TableCell>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filter
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {activeRequests.length > 0 ? (
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Company</TableHead>
+                            <TableHead>Contact</TableHead>
+                            <TableHead>Plan</TableHead>
+                            <TableHead>Requested</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {activeRequests.map((request) => (
+                            <TableRow key={request.id}>
+                              <TableCell className="font-medium">
+                                {request.company}
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-medium">{request.name}</div>
+                                <div className="text-sm text-muted-foreground">{request.email}</div>
+                                <div className="text-sm text-muted-foreground">{request.phone}</div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  request.plan === "Enterprise" 
+                                    ? "default" 
+                                    : request.plan === "Professional" 
+                                      ? "outline" 
+                                      : "secondary"
+                                }>
+                                  {request.plan}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{request.requestDate}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="flex items-center gap-1"
+                                    onClick={() => window.open(`mailto:${request.email}`, '_blank')}
+                                  >
+                                    <Mail className="h-3 w-3" />
+                                    Contact
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    onClick={() => handleReject(request.id)}
+                                  >
+                                    Reject
+                                  </Button>
+                                  <Button 
+                                    size="sm"
+                                    onClick={() => handleApprove(request.id)}
+                                  >
+                                    Approve
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden space-y-2">
+                    {activeRequests.map((request) => (
+                      <Card key={request.id} className="border-0 shadow-none">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-medium">{request.company}</h3>
+                              <p className="text-sm text-muted-foreground">{request.name}</p>
+                            </div>
                             <Badge variant={
                               request.plan === "Enterprise" 
                                 ? "default" 
@@ -166,145 +224,235 @@ const TenantApprovals = () => {
                             }>
                               {request.plan}
                             </Badge>
-                          </TableCell>
-                          <TableCell>{request.requestDate}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="flex items-center gap-1"
-                                onClick={() => window.open(`mailto:${request.email}`, '_blank')}
-                              >
-                                <Mail className="h-3 w-3" />
-                                Contact
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleReject(request.id)}
-                              >
-                                Reject
-                              </Button>
-                              <Button 
-                                size="sm"
-                                onClick={() => handleApprove(request.id)}
-                              >
-                                Approve
-                              </Button>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Email</p>
+                              <p className="text-sm">{request.email}</p>
                             </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Phone</p>
+                              <p className="text-sm">{request.phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Requested</p>
+                              <p className="text-sm">{request.requestDate}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex items-center gap-1"
+                              onClick={() => window.open(`mailto:${request.email}`, '_blank')}
+                            >
+                              <Mail className="h-3 w-3" />
+                              Contact
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleReject(request.id)}
+                            >
+                              Reject
+                            </Button>
+                            <Button 
+                              size="sm"
+                              onClick={() => handleApprove(request.id)}
+                            >
+                              Approve
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <CheckCircle2 className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">All caught up!</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mt-2">
+                    There are no pending tenant approval requests at this time.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="approved">
+          <Card className="overflow-hidden">
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle>Recently Approved</CardTitle>
+              <CardDescription>
+                Tenants approved in the last 30 days
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentApprovals.map((approval) => (
+                        <TableRow key={approval.id}>
+                          <TableCell className="font-medium">
+                            {approval.company}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{approval.name}</div>
+                            <div className="text-sm text-muted-foreground">{approval.email}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-800">
+                              Approved
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{approval.date}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" variant="outline" className="flex items-center gap-1">
+                              <ExternalLink className="h-3 w-3" />
+                              View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <CheckCircle2 className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium">All caught up!</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mt-2">
-                      There are no pending tenant approval requests at this time.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="approved">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recently Approved</CardTitle>
-                <CardDescription>
-                  Tenants approved in the last 30 days
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentApprovals.map((approval) => (
-                      <TableRow key={approval.id}>
-                        <TableCell className="font-medium">
-                          {approval.company}
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{approval.name}</div>
-                          <div className="text-sm text-muted-foreground">{approval.email}</div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-100 text-green-800">
-                            Approved
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{approval.date}</TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="outline" className="flex items-center gap-1">
-                            <ExternalLink className="h-3 w-3" />
-                            View
-                          </Button>
-                        </TableCell>
+                </div>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2">
+                {recentApprovals.map((approval) => (
+                  <Card key={approval.id} className="border-0 shadow-none">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{approval.company}</h3>
+                          <p className="text-sm text-muted-foreground">{approval.name}</p>
+                        </div>
+                        <Badge className="bg-green-100 text-green-800">
+                          Approved
+                        </Badge>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="text-sm">{approval.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Date</p>
+                          <p className="text-sm">{approval.date}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <Button size="sm" variant="outline" className="flex items-center gap-1">
+                          <ExternalLink className="h-3 w-3" />
+                          View
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="rejected">
+          <Card className="overflow-hidden">
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle>Recently Rejected</CardTitle>
+              <CardDescription>
+                Tenant requests rejected in the last 30 days
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="rejected">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recently Rejected</CardTitle>
-                <CardDescription>
-                  Tenant requests rejected in the last 30 days
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentRejections.map((rejection) => (
-                      <TableRow key={rejection.id}>
-                        <TableCell className="font-medium">
-                          {rejection.company}
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{rejection.name}</div>
-                          <div className="text-sm text-muted-foreground">{rejection.email}</div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-                            Rejected
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{rejection.reason}</TableCell>
-                        <TableCell>{rejection.date}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+                    </TableHeader>
+                    <TableBody>
+                      {recentRejections.map((rejection) => (
+                        <TableRow key={rejection.id}>
+                          <TableCell className="font-medium">
+                            {rejection.company}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{rejection.name}</div>
+                            <div className="text-sm text-muted-foreground">{rejection.email}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                              Rejected
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{rejection.reason}</TableCell>
+                          <TableCell>{rejection.date}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2">
+                {recentRejections.map((rejection) => (
+                  <Card key={rejection.id} className="border-0 shadow-none">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{rejection.company}</h3>
+                          <p className="text-sm text-muted-foreground">{rejection.name}</p>
+                        </div>
+                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                          Rejected
+                        </Badge>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="text-sm">{rejection.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Reason</p>
+                          <p className="text-sm">{rejection.reason}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Date</p>
+                          <p className="text-sm">{rejection.date}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

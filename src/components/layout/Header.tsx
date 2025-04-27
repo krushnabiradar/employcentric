@@ -9,9 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, ChevronDown, Moon, Sun } from "lucide-react";
+import { Bell, ChevronDown, Menu, Moon, Sun } from "lucide-react";
 
-const Header = () => {
+interface HeaderProps {
+  onSidebarToggle: () => void;
+}
+
+const Header = ({ onSidebarToggle }: HeaderProps) => {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
 
@@ -27,8 +31,18 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-30 h-16 border-b bg-background/95 backdrop-blur">
       <div className="flex h-full items-center justify-between px-4 sm:px-6">
-        {/* Page Title */}
-        <h1 className="text-lg font-semibold">Dashboard</h1>
+        {/* Left side - Mobile menu button and title */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={onSidebarToggle}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+        </div>
 
         {/* Right side actions */}
         <div className="flex items-center gap-2 sm:gap-4">

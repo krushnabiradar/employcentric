@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SuperAdminDashboardLayout from "@/components/layouts/superadmin/SuperAdminDashboardLayout";
@@ -177,68 +176,66 @@ const TenantsPage = () => {
   const totalUsers = tenants.reduce((sum, tenant) => sum + tenant.users, 0);
   
   return (
-<>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tenant Management</h1>
-            <p className="text-muted-foreground">
-              Manage all organizations using your HRMS platform
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={() => navigate('/tenant-approvals')}
-            >
-              <CheckCircle className="h-4 w-4" />
-              Pending Approvals
-              {pendingApprovals > 0 && (
-                <Badge className="ml-1">{pendingApprovals}</Badge>
-              )}
-            </Button>
-            <Button 
-              className="flex items-center gap-2"
-              onClick={() => setIsFormOpen(true)}
-            >
-              <PlusCircle className="h-4 w-4" />
-              Add New Tenant
-            </Button>
-          </div>
+    <div className="w-full max-w-full overflow-hidden space-y-4 p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tenant Management</h1>
+          <p className="text-muted-foreground">
+            Manage all organizations using your HRMS platform
+          </p>
         </div>
-
-        <TenantFilters 
-          onSearch={handleSearch} 
-          onFilterChange={handleFilterChange} 
-        />
-
-        <TenantStats 
-          totalTenants={totalTenants}
-          activeTenants={activeTenants}
-          pendingApprovals={pendingApprovals}
-          totalUsers={totalUsers}
-        />
-        
-        <TenantTable 
-          tenants={tenants}
-          filteredTenants={filteredTenants}
-          onEdit={handleEditTenant}
-          onDelete={handleDeleteTenant}
-          onActivate={handleActivateTenant}
-          onSuspend={handleSuspendTenant}
-          onManageUsers={handleManageUsers}
-          onManageSettings={handleManageSettings}
-        />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline"
+            className="flex items-center gap-2 w-full sm:w-auto"
+            onClick={() => navigate('/tenant-approvals')}
+          >
+            <CheckCircle className="h-4 w-4" />
+            Pending Approvals
+            {pendingApprovals > 0 && (
+              <Badge className="ml-1">{pendingApprovals}</Badge>
+            )}
+          </Button>
+          <Button 
+            className="flex items-center gap-2 w-full sm:w-auto"
+            onClick={() => setIsFormOpen(true)}
+          >
+            <PlusCircle className="h-4 w-4" />
+            Add New Tenant
+          </Button>
+        </div>
       </div>
+
+      <TenantFilters 
+        onSearch={handleSearch} 
+        onFilterChange={handleFilterChange} 
+      />
+
+      <TenantStats 
+        totalTenants={totalTenants}
+        activeTenants={activeTenants}
+        pendingApprovals={pendingApprovals}
+        totalUsers={totalUsers}
+      />
+      
+      <TenantTable 
+        tenants={tenants}
+        filteredTenants={filteredTenants}
+        onEdit={handleEditTenant}
+        onDelete={handleDeleteTenant}
+        onActivate={handleActivateTenant}
+        onSuspend={handleSuspendTenant}
+        onManageUsers={handleManageUsers}
+        onManageSettings={handleManageSettings}
+      />
       
       {/* Tenant Creation Form */}
-      <TenantForm 
+      <TenantForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleCreateTenant}
       />
-</>
+    </div>
   );
 };
 
