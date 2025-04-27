@@ -1,7 +1,6 @@
-
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 const {
   getTodayAttendance,
   getMonthlyAttendance,
@@ -13,8 +12,8 @@ const {
 // Public routes - none
 
 // Protected routes
-router.get('/today', protect, getTodayAttendance);
-router.get('/stats', protect, authorize(['admin', 'hr']), getAttendanceStats);
+router.get('/today', protect(), getTodayAttendance);
+router.get('/stats', protect(['admin', 'hr']), getAttendanceStats);
 router.get('/:employeeId', protect, getMonthlyAttendance);
 router.post('/check-in', protect, checkIn);
 router.post('/check-out', protect, checkOut);

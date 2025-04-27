@@ -1,7 +1,6 @@
-
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 const {
   getAllPayrolls,
   getPayroll,
@@ -14,15 +13,15 @@ const {
 // All routes are protected and only accessible by admin, HR, or finance roles
 router
   .route('/')
-  .get(protect, authorize('admin', 'hr'), getAllPayrolls)
-  .post(protect, authorize('admin', 'hr'), createPayroll);
+  .get(protect(['admin', 'hr']), getAllPayrolls)
+  .post(protect(['admin', 'hr']), createPayroll);
 
-router.get('/stats', protect, authorize('admin', 'hr'), getPayrollStats);
-router.get('/period/:period', protect, authorize('admin', 'hr'), getPayrollsByPeriod);
+router.get('/stats', protect(['admin', 'hr']), getPayrollStats);
+router.get('/period/:period', protect(['admin', 'hr']), getPayrollsByPeriod);
 
 router
   .route('/:id')
-  .get(protect, getPayroll)
-  .put(protect, authorize('admin', 'hr'), updatePayroll);
+  .get(protect(), getPayroll)
+  .put(protect(['admin', 'hr']), updatePayroll);
 
 module.exports = router;

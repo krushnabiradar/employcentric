@@ -1,30 +1,45 @@
-
 const passport = require('passport');
 
-// Authentication middleware
-exports.protect = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: 'Unauthorized' });
+// Combined authentication and authorization middleware
+exports.protect = (roles) => {
+  return (req, res, next) => {
+    // First authenticate using JWT
+    passport.authenticate('jwt', { session: false }, (err, user, info) => {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Unauthorized access' });
+      }
+
+      // If roles are specified, check authorization
+      if (roles) {
+        // Handle both array and single string role arguments
+        const allowedRoles = Array.isArray(roles) ? roles : [roles];
+        
+        // Check if user has the required role
+        if (!user.role || !allowedRoles.includes(user.role)) {
+          return res.status(403).json({ 
+            message: `Forbidden: Access denied. Required role(s): ${allowedRoles.join(', ')}` 
+          });
+        }
+      }
+
+      // Attach user to request and proceed
+      req.user = user;
+      next();
+    })(req, res, next);
+  };
 };
 
-// Role-based access control middleware
-exports.authorize = (roles) => {
+// Validation middleware
+exports.validate = (schema) => {
   return (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
     }
-    
-    // Handle both array and single string role arguments
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
-    
-    // Check if user has the required role
-    if (!req.user.role || !allowedRoles.includes(req.user.role)) {
-      console.log(`Access forbidden: User role ${req.user.role} not in allowed roles:`, allowedRoles);
-      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
-    }
-    
-    return next();
+    next();
   };
 };

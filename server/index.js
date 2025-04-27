@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -18,6 +17,7 @@ const employeeRoutes = require('./routes/employeeRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const payrollRoutes = require('./routes/payrollRoutes');
 const tenantRoutes = require('./routes/tenantRoutes');
+const superadminRoutes = require('./routes/superadminRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -58,6 +58,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/tenants', tenantRoutes);
+app.use('/api/superadmin', superadminRoutes);
 
 // Create HTTP server
 const server = http.createServer(app);

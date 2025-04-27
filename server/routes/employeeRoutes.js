@@ -1,7 +1,6 @@
-
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 const {
   getAllEmployees,
   getEmployee,
@@ -13,13 +12,13 @@ const {
 // All routes are protected and only accessible by admin or HR
 router
   .route('/')
-  .get(protect, getAllEmployees)
-  .post(protect, authorize('admin', 'hr'), createEmployee);
+  .get(protect(), getAllEmployees)
+  .post(protect(['admin', 'hr']), createEmployee);
 
 router
   .route('/:id')
-  .get(protect, getEmployee)
-  .put(protect, authorize('admin', 'hr'), updateEmployee)
-  .delete(protect, authorize('admin'), deleteEmployee);
+  .get(protect(), getEmployee)
+  .put(protect(['admin', 'hr']), updateEmployee)
+  .delete(protect(['admin']), deleteEmployee);
 
 module.exports = router;
