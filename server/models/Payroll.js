@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const payrollSchema = new mongoose.Schema(
@@ -6,6 +5,11 @@ const payrollSchema = new mongoose.Schema(
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee',
+      required: true,
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
       required: true,
     },
     payPeriod: {
@@ -32,6 +36,15 @@ const payrollSchema = new mongoose.Schema(
       type: String,
       enum: ['paid', 'processing', 'pending'],
       default: 'pending',
+    },
+    currency: {
+      type: String,
+      default: 'USD'
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['bank_transfer', 'check', 'cash'],
+      default: 'bank_transfer'
     },
     details: {
       basicSalary: {

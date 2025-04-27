@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Card, 
@@ -17,20 +18,114 @@ import {
   TrendingUp,
   AlertCircle
 } from "lucide-react";
-
-// Custom components for dashboard widgets
+import { useToast } from "@/hooks/use-toast";
+import { employeeApi } from "@/api/employeeApi";
+import { attendanceApi } from "@/api/attendanceApi";
+import { leaveApi } from "@/api/leaveApi";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const attendanceData = [
-  { name: 'Mon', value: 85 },
-  { name: 'Tue', value: 90 },
-  { name: 'Wed', value: 88 },
-  { name: 'Thu', value: 92 },
-  { name: 'Fri', value: 78 },
-];
+interface DashboardStats {
+  totalEmployees: number;
+  attendanceToday: {
+    present: number;
+    absent: number;
+    percentage: number;
+  };
+  pendingLeaves: number;
+  weeklyAttendance: Array<{
+    name: string;
+    value: number;
+  }>;
+  recentActivities: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: string;
+    status?: string;
+  }>;
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch all required data in parallel
+      const [employees, attendance, leaves] = await Promise.all([
+        employeeApi.getAllEmployees(),
+        attendanceApi.getTodayAttendance(),
+        leaveApi.getAllLeaves()
+      ]);
+
+      // Calculate attendance stats
+      const presentCount = attendance.filter(a => a.status === 'present').length;
+      const totalCount = employees.length;
+      const attendancePercentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+      // Get weekly attendance data
+      const weeklyAttendance = await Promise.all(
+        Array.from({ length: 5 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          return attendanceApi.getTodayAttendance();
+        })
+      );
+
+      const weeklyData = weeklyAttendance.map((day, index) => {
+        const present = day.filter(a => a.status === 'present').length;
+        const percentage = totalCount > 0 ? Math.round((present / totalCount) * 100) : 0;
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+        return {
+          name: dayNames[index],
+          value: percentage
+        };
+      }).reverse();
+
+      // Filter pending leaves
+      const pendingLeaves = leaves.filter(leave => leave.status === 'pending');
+
+      // Combine all data into dashboard stats
+      const dashboardStats: DashboardStats = {
+        totalEmployees: employees.length,
+        attendanceToday: {
+          present: presentCount,
+          absent: totalCount - presentCount,
+          percentage: attendancePercentage
+        },
+        pendingLeaves: pendingLeaves.length,
+        weeklyAttendance: weeklyData,
+        recentActivities: [
+          ...pendingLeaves.slice(0, 3).map(leave => ({
+            id: leave._id,
+            type: 'leave',
+            description: `${leave.userName} requested ${leave.leaveType} leave`,
+            timestamp: new Date(leave.createdAt).toLocaleString(),
+            status: leave.status
+          }))
+        ]
+      };
+
+      setStats(dashboardStats);
+    } catch (error) {
+      console.error("Failed to fetch dashboard stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <div className="space-y-6 p-6">
@@ -52,9 +147,9 @@ const Dashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">254</div>
+            <div className="text-2xl font-bold">{stats?.totalEmployees || 0}</div>
             <p className="text-xs text-muted-foreground">
-              +4 since last month
+              Active employees in your organization
             </p>
           </CardContent>
         </Card>
@@ -67,9 +162,9 @@ const Dashboard = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">87%</div>
+            <div className="text-2xl font-bold">{stats?.attendanceToday.percentage || 0}%</div>
             <p className="text-xs text-muted-foreground">
-              220 checked in, 34 absent
+              {stats?.attendanceToday.present || 0} checked in, {stats?.attendanceToday.absent || 0} absent
             </p>
           </CardContent>
         </Card>
@@ -82,7 +177,7 @@ const Dashboard = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">18</div>
+            <div className="text-2xl font-bold">{stats?.pendingLeaves || 0}</div>
             <p className="text-xs text-muted-foreground">
               Requires your approval
             </p>
@@ -97,9 +192,9 @@ const Dashboard = () => {
             <BriefcaseIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              36 applications received
+              Active job postings
             </p>
           </CardContent>
         </Card>
@@ -124,7 +219,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={attendanceData}>
+                  <LineChart data={stats?.weeklyAttendance || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis domain={[0, 100]} unit="%" />
@@ -151,130 +246,42 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-blue-100 p-2 rounded-full">
-                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                  {stats?.recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-4">
+                      <div className={`p-2 rounded-full ${
+                        activity.type === 'leave' ? 'bg-blue-100' :
+                        activity.type === 'recruitment' ? 'bg-green-100' :
+                        'bg-orange-100'
+                      }`}>
+                        {activity.type === 'leave' ? (
+                          <Calendar className="h-4 w-4 text-blue-600" />
+                        ) : activity.type === 'recruitment' ? (
+                          <UserPlus className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-orange-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.timestamp}
+                        </p>
+                        {activity.status && (
+                          <p className={`text-xs mt-1 ${
+                            activity.status === 'pending' ? 'text-amber-600' :
+                            activity.status === 'approved' ? 'text-green-600' :
+                            'text-red-600'
+                          }`}>
+                            {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">New policy update</p>
-                      <p className="text-xs text-muted-foreground">
-                        Updated sick leave policy is now in effect
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4">
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <UserPlus className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">New employees</p>
-                      <p className="text-xs text-muted-foreground">
-                        3 new employees joined the development team
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4">
-                    <div className="bg-orange-100 p-2 rounded-full">
-                      <Calendar className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Team meeting</p>
-                      <p className="text-xs text-muted-foreground">
-                        Monthly all-hands scheduled for Friday at 2PM
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">2 days ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4">
-                    <div className="bg-purple-100 p-2 rounded-full">
-                      <TrendingUp className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Performance review</p>
-                      <p className="text-xs text-muted-foreground">
-                        Q2 performance reviews are due next week
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">3 days ago</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </div>
-          
-          {/* Recent activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Latest actions across the platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium">
-                      John Smith requested vacation time off
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      12 minutes ago
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium text-sm text-amber-600">
-                    Pending Approval
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium">
-                      Sarah Johnson submitted her timesheet
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      42 minutes ago
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium text-sm text-green-600">
-                    Completed
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium">
-                      New job posting for "Senior Developer"
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      2 hours ago
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium text-sm text-blue-600">
-                    Published
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium">
-                      Payroll for June has been processed
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      1 day ago
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium text-sm text-green-600">
-                    Completed
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
         
         <TabsContent value="analytics" className="space-y-4">

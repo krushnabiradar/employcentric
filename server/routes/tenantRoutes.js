@@ -3,8 +3,8 @@ const router = express.Router();
 const { protect } = require('../middlewares/auth');
 const tenantController = require('../controllers/tenantController');
 
-// Protect all routes - require authentication
-router.use(protect());
+// NOTE: This line is redundant since you're applying protect to each route individually
+// router.use(protect()); 
 
 // Routes that only superadmins can access
 router.get('/', protect('superadmin'), tenantController.getTenants);

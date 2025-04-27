@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const attendanceSchema = new mongoose.Schema(
@@ -6,6 +5,11 @@ const attendanceSchema = new mongoose.Schema(
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee',
+      required: true,
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
       required: true,
     },
     date: {
@@ -25,6 +29,20 @@ const attendanceSchema = new mongoose.Schema(
       enum: ['present', 'absent', 'leave'],
       default: 'absent',
     },
+    location: {
+      type: {
+        type: String,
+        enum: ['office', 'remote', 'field'],
+        default: 'office'
+      },
+      coordinates: {
+        latitude: Number,
+        longitude: Number
+      }
+    },
+    notes: {
+      type: String
+    }
   },
   {
     timestamps: true,

@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -21,6 +20,13 @@ const UserSchema = new mongoose.Schema({
     enum: ['superadmin', 'admin', 'hr', 'manager', 'employee'],
     default: 'employee'
   },
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    required: function() {
+      return this.role !== 'superadmin';
+    }
+  },
   company: {
     type: String
   },
@@ -30,6 +36,13 @@ const UserSchema = new mongoose.Schema({
   isApproved: {
     type: Boolean,
     default: false
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lastLogin: {
+    type: Date
   },
   createdAt: {
     type: Date,

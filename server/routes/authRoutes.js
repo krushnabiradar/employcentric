@@ -1,19 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { userValidation } = require('../utils/validation');
-const { validate, protect } = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
-// Register route
-router.post('/register', validate(userValidation.register), authController.register);
+// Public routes
+router.post('/register', authController.register);
+router.post('/login', authController.login);
 
-// Login route
-router.post('/login', validate(userValidation.login), authController.login);
+// Protected routes
+router.get('/me', protect(), authController.getCurrentUser);
+router.put('/profile', protect(), authController.updateProfile);
 
-// Logout route
-router.post('/logout', authController.logout);
-
-// Get current user route
-router.get('/me', protect, authController.getCurrentUser);
+// Admin routes
+router.get('/users', protect(['admin', 'superadmin']), authController.getAllUsers);
+router.put('/users/:id/status', protect(['admin', 'superadmin']), authController.updateUserStatus);
 
 module.exports = router;

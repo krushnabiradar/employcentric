@@ -1,113 +1,243 @@
-
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const User = require('../models/User');
+const Tenant = require('../models/Tenant');
 const logger = require('../utils/logger');
 
-// Register new user
-const register = async (req, res) => {
-  try {
-    const { name, email, password, role, company, phone } = req.body;
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-    
-    // Prevent registering as superadmin - superadmins can only be created by another superadmin
-    let userRole = role;
-    if (role === 'superadmin') {
-      userRole = 'admin'; // Default to admin if someone tries to register as superadmin
-    }
-    
-    // Create new user
-    const user = new User({
-      name,
-      email,
-      password,
-      role: userRole,
-      company,
-      phone
-    });
-    
-    await user.save();
-    
-    // Return user without password
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      company: user.company
-    };
-    
-    res.status(201).json({ 
-      user: userResponse,
-      message: 'Account request submitted successfully' 
-    });
-  } catch (error) {
-    logger.error(`Registration error: ${error.message}`);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+const authController = {
+  // Register a new user
+  async register(req, res) {
+    try {
+      const { name, email, password, role, tenantId } = req.body;
 
-// Login user
-const login = (req, res, next) => {
-  passport.authenticate('local', (err, user, info) => {
-    if (err) {
-      logger.error(`Login error: ${err.message}`);
-      return next(err);
-    }
-    if (!user) {
-      return res.status(400).json({ message: info.message || 'Invalid credentials' });
-    }
-    req.logIn(user, (err) => {
-      if (err) {
-        logger.error(`Session login error: ${err.message}`);
-        return next(err);
+      // Check if user already exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
       }
-      // Remove password from response
-      const userResponse = {
+
+      // For non-superadmin users, verify tenant
+      if (role !== 'superadmin') {
+        const tenant = await Tenant.findById(tenantId);
+        if (!tenant) {
+          return res.status(400).json({ error: 'Invalid tenant' });
+        }
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const user = new User({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        tenantId: role !== 'superadmin' ? tenantId : null,
+        isActive: true
+      });
+
+      await user.save();
+
+      // Generate token
+      const token = jwt.sign(
+        { userId: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.status(201).json({
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId
+        },
+        token
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Login user
+  async login(req, res) {
+    try {
+      const { email, password } = req.body;
+
+      // Find user
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ error: 'Account is inactive' });
+      }
+
+      // Verify password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // For non-superadmin users, verify tenant
+      if (user.role !== 'superadmin') {
+        const tenant = await Tenant.findById(user.tenantId);
+        if (!tenant || tenant.status !== 'active') {
+          return res.status(401).json({ error: 'Tenant is inactive' });
+        }
+      }
+
+      // Update last login
+      user.lastLogin = new Date();
+      await user.save();
+
+      // Generate token
+      const token = jwt.sign(
+        { userId: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId
+        },
+        token
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Get current user
+  async getCurrentUser(req, res) {
+    try {
+      const user = await User.findById(req.user._id)
+        .select('-password')
+        .populate('tenantId', 'name company status');
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Update user profile
+  async updateProfile(req, res) {
+    try {
+      const { name, email, currentPassword, newPassword } = req.body;
+      const user = await User.findById(req.user._id);
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Update name and email
+      if (name) user.name = name;
+      if (email) user.email = email;
+
+      // Update password if provided
+      if (currentPassword && newPassword) {
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+          return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+        user.password = await bcrypt.hash(newPassword, 10);
+      }
+
+      await user.save();
+
+      res.json({
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
-      };
-      return res.status(200).json({ user: userResponse });
-    });
-  })(req, res, next);
-};
-
-// Logout user
-const logout = (req, res) => {
-  req.logout(function(err) {
-    if (err) { 
-      logger.error(`Logout error: ${err.message}`);
-      return res.status(500).json({ message: 'Logout failed' }); 
+        role: user.role,
+        tenantId: user.tenantId
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-    res.status(200).json({ message: 'Logged out successfully' });
-  });
-};
+  },
 
-// Get current user
-const getCurrentUser = (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  // Get all users (admin only)
+  async getAllUsers(req, res) {
+    try {
+      const { role, tenantId } = req.query;
+      const query = {};
+
+      // Filter by role if provided
+      if (role) {
+        query.role = role;
+      }
+
+      // For non-superadmin users, only show users from their tenant
+      if (req.user.role !== 'superadmin') {
+        query.tenantId = req.user.tenantId;
+      } else if (tenantId) {
+        // Superadmin can filter by tenant
+        query.tenantId = tenantId;
+      }
+
+      const users = await User.find(query)
+        .select('-password')
+        .populate('tenantId', 'name company status');
+
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Update user status (admin only)
+  async updateUserStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      // Find user
+      const user = await User.findById(id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Check if user has permission to update this user
+      if (req.user.role !== 'superadmin' && user.tenantId.toString() !== req.user.tenantId.toString()) {
+        return res.status(403).json({ error: 'Not authorized to update this user' });
+      }
+
+      // Prevent deactivating superadmin
+      if (user.role === 'superadmin' && !isActive) {
+        return res.status(403).json({ error: 'Cannot deactivate superadmin' });
+      }
+
+      user.isActive = isActive;
+      await user.save();
+
+      res.json({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
+        isActive: user.isActive
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
-  
-  const userResponse = {
-    id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    role: req.user.role
-  };
-  
-  res.json({ user: userResponse });
 };
 
-module.exports = {
-  register,
-  login,
-  logout,
-  getCurrentUser
-};
+module.exports = authController;

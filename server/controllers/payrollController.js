@@ -1,6 +1,6 @@
-
 const Payroll = require('../models/Payroll');
 const Employee = require('../models/Employee');
+const logger = require('../utils/logger');
 
 // Get all payrolls
 exports.getAllPayrolls = async (req, res) => {
@@ -111,6 +111,71 @@ exports.getPayrollStats = async (req, res) => {
       }
     });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Generate payroll
+exports.generatePayroll = async (req, res) => {
+  try {
+    const { month, year } = req.body;
+    
+    // Get all active employees
+    const employees = await Employee.find({ status: 'active' });
+    
+    // Generate payroll for each employee
+    const payrolls = await Promise.all(employees.map(async (employee) => {
+      const payroll = new Payroll({
+        employeeId: employee._id,
+        month,
+        year,
+        basicSalary: employee.salary,
+        // Add other salary components
+        totalAmount: employee.salary // This should be calculated based on all components
+      });
+      return await payroll.save();
+    }));
+
+    // Emit socket event for notifications
+    const io = req.app.get('io');
+    io.to('admin').to('hr').emit('payroll-generated', {
+      message: `Payroll generated for ${month}/${year}`,
+      count: payrolls.length
+    });
+
+    res.status(201).json({ success: true, data: payrolls });
+  } catch (error) {
+    logger.error(`Generate payroll error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Update payroll status
+exports.updatePayrollStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const payroll = await Payroll.findByIdAndUpdate(
+      id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    ).populate('employeeId', 'name');
+
+    if (!payroll) {
+      return res.status(404).json({ success: false, error: 'Payroll not found' });
+    }
+
+    // Emit socket event for notifications
+    const io = req.app.get('io');
+    io.to(payroll.employeeId._id.toString()).emit('payroll-status-update', {
+      message: `Your payroll status has been updated to ${status}`,
+      payroll
+    });
+
+    res.status(200).json({ success: true, data: payroll });
+  } catch (error) {
+    logger.error(`Update payroll status error: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 };

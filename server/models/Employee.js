@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const employeeSchema = new mongoose.Schema(
@@ -39,12 +38,26 @@ const employeeSchema = new mongoose.Schema(
       type: String, 
       default: null,
     },
+    employmentType: {
+      type: String,
+      enum: ['Full-time', 'Part-time', 'Contract', 'Intern'],
+      default: 'Full-time'
+    },
+    managerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Employee'
+    },
     // Reference to the user account
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true
+    }
   },
   {
     timestamps: true,

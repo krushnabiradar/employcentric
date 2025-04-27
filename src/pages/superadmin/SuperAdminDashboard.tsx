@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import SuperAdminDashboardLayout from "@/components/layouts/superadmin/SuperAdminDashboardLayout";
 import { 
@@ -21,28 +22,82 @@ import {
   ServerIcon
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { systemApi } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
-// Sample data for charts
-const tenantsData = [
-  { name: 'Jan', value: 15 },
-  { name: 'Feb', value: 18 },
-  { name: 'Mar', value: 25 },
-  { name: 'Apr', value: 31 },
-  { name: 'May', value: 35 },
-  { name: 'Jun', value: 42 },
-];
+interface SystemStats {
+  totalTenants: number;
+  activeUsers: number;
+  systemUptime: number;
+  pendingApprovals: number;
+}
 
-const usageData = [
-  { name: 'Mon', active: 4000, inactive: 2400 },
-  { name: 'Tue', active: 3000, inactive: 1398 },
-  { name: 'Wed', active: 2000, inactive: 9800 },
-  { name: 'Thu', active: 2780, inactive: 3908 },
-  { name: 'Fri', active: 1890, inactive: 4800 },
-];
+interface SystemAlert {
+  id: string;
+  type: 'warning' | 'success' | 'info' | 'error';
+  title: string;
+  message: string;
+  timestamp: string;
+}
+
+interface TenantGrowthData {
+  name: string;
+  value: number;
+}
+
+interface SystemUsageData {
+  name: string;
+  active: number;
+  inactive: number;
+}
 
 const SuperAdminDashboard = () => {
   const { user } = useAuth();
-  
+  const { toast } = useToast();
+  const [stats, setStats] = useState<SystemStats | null>(null);
+  const [alerts, setAlerts] = useState<SystemAlert[]>([]);
+  const [tenantGrowth, setTenantGrowth] = useState<TenantGrowthData[]>([]);
+  const [systemUsage, setSystemUsage] = useState<SystemUsageData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, alertsData, growthData, usageData] = await Promise.all([
+          systemApi.getSystemStats(),
+          systemApi.getSystemAlerts(),
+          systemApi.getTenantGrowth(),
+          systemApi.getSystemUsage()
+        ]);
+
+        setStats(statsData);
+        setAlerts(alertsData);
+        setTenantGrowth(growthData);
+        setSystemUsage(usageData);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [toast]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-4">
       {/* Welcome header */}
@@ -63,7 +118,7 @@ const SuperAdminDashboard = () => {
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42</div>
+            <div className="text-2xl font-bold">{stats?.totalTenants || 0}</div>
             <p className="text-xs text-muted-foreground">
               +7 in last 30 days
             </p>
@@ -78,7 +133,7 @@ const SuperAdminDashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,254</div>
+            <div className="text-2xl font-bold">{stats?.activeUsers || 0}</div>
             <p className="text-xs text-muted-foreground">
               +142 since last month
             </p>
@@ -93,7 +148,7 @@ const SuperAdminDashboard = () => {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">99.8%</div>
+            <div className="text-2xl font-bold">{stats?.systemUptime || 0}%</div>
             <p className="text-xs text-muted-foreground">
               Last 30 days performance
             </p>
@@ -108,7 +163,7 @@ const SuperAdminDashboard = () => {
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{stats?.pendingApprovals || 0}</div>
             <p className="text-xs text-muted-foreground">
               New tenant requests waiting
             </p>
@@ -135,7 +190,7 @@ const SuperAdminDashboard = () => {
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={tenantsData}>
+                  <AreaChart data={tenantGrowth}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -161,57 +216,32 @@ const SuperAdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-amber-100 p-2 rounded-full">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  {alerts.map((alert) => (
+                    <div key={alert.id} className="flex items-start gap-3">
+                      <div className={`p-2 rounded-full ${
+                        alert.type === 'warning' ? 'bg-amber-100' :
+                        alert.type === 'success' ? 'bg-green-100' :
+                        alert.type === 'error' ? 'bg-red-100' :
+                        'bg-blue-100'
+                      }`}>
+                        <AlertTriangle className={`h-4 w-4 ${
+                          alert.type === 'warning' ? 'text-amber-600' :
+                          alert.type === 'success' ? 'text-green-600' :
+                          alert.type === 'error' ? 'text-red-600' :
+                          'text-blue-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{alert.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {alert.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(alert.timestamp).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Database usage high</p>
-                      <p className="text-xs text-muted-foreground">
-                        Main tenant database approaching 80% capacity
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <ServerIcon className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">System update complete</p>
-                      <p className="text-xs text-muted-foreground">
-                        Version 2.4.5 deployed successfully
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-blue-100 p-2 rounded-full">
-                      <Globe className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">New region available</p>
-                      <p className="text-xs text-muted-foreground">
-                        Asia-Pacific region now supported
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">2 days ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-red-100 p-2 rounded-full">
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Authentication attempt blocked</p>
-                      <p className="text-xs text-muted-foreground">
-                        Multiple failed login attempts from unauthorized IP
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">3 days ago</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -227,7 +257,7 @@ const SuperAdminDashboard = () => {
             </CardHeader>
             <CardContent className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={usageData}>
+                <BarChart data={systemUsage}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />

@@ -1,10 +1,19 @@
-
 const mongoose = require('mongoose');
 
 const LeaveSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true
+  },
+  employeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+    required: true
+  },
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
     required: true
   },
   userName: {
@@ -34,16 +43,22 @@ const LeaveSchema = new mongoose.Schema({
     default: 'pending'
   },
   approvedBy: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     default: null
   },
   rejectedBy: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     default: null
   },
   rejectionReason: {
     type: String,
     default: null
+  },
+  leaveBalance: {
+    type: Number,
+    default: 0
   },
   createdAt: {
     type: Date,

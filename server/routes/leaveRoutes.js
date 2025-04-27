@@ -1,19 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const leaveController = require('../controllers/leaveController');
-const { leaveValidation } = require('../utils/validation');
-const { protect, validate } = require('../middlewares/auth');
+
+const { protect } = require('../middlewares/auth'); // Ensure this is correct
+const { getAllLeaves, createLeave, approveLeave, rejectLeave } = require('../controllers/leaveController');
 
 // Get all leaves
-router.get('/', protect(), leaveController.getAllLeaves);
+router.get('/', protect(['admin', 'hr', 'employee']), getAllLeaves);
 
 // Create new leave request
-router.post('/', protect(), validate(leaveValidation), leaveController.createLeave);
+router.post('/', protect(['employee']), createLeave);
 
 // Approve leave request
-router.put('/:id/approve', protect(['admin', 'hr']), leaveController.approveLeave);
+router.put('/:id/approve', protect(['admin', 'hr']), approveLeave);
 
 // Reject leave request
-router.put('/:id/reject', protect(['admin', 'hr']), leaveController.rejectLeave);
+router.put('/:id/reject', protect(['admin', 'hr']), rejectLeave);
 
 module.exports = router;

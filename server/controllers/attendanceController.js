@@ -1,4 +1,3 @@
-
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 const { startOfDay, endOfDay, startOfMonth, endOfMonth } = require('date-fns');
@@ -65,6 +64,15 @@ exports.checkIn = async (req, res) => {
       attendance.checkIn = today;
       attendance.status = 'present';
       await attendance.save();
+
+      // Emit socket event for notifications
+      const io = req.app.get('io');
+      io.to('admin').to('hr').emit('attendance-update', {
+        type: 'check-in',
+        message: `Employee ${attendance.employeeId.name} checked in`,
+        attendance
+      });
+
       return res.status(200).json({ success: true, data: attendance });
     } else {
       return res.status(400).json({ success: false, error: 'Already checked in today' });
@@ -94,6 +102,15 @@ exports.checkOut = async (req, res) => {
     if (attendance.checkIn && !attendance.checkOut) {
       attendance.checkOut = today;
       await attendance.save();
+
+      // Emit socket event for notifications
+      const io = req.app.get('io');
+      io.to('admin').to('hr').emit('attendance-update', {
+        type: 'check-out',
+        message: `Employee ${attendance.employeeId.name} checked out`,
+        attendance
+      });
+
       return res.status(200).json({ success: true, data: attendance });
     } else if (attendance.checkOut) {
       return res.status(400).json({ success: false, error: 'Already checked out today' });

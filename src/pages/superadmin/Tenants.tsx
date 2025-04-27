@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SuperAdminDashboardLayout from "@/components/layouts/superadmin/SuperAdminDashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -10,28 +10,60 @@ import { TenantStats } from "@/components/tenants/TenantStats";
 import { TenantTable } from "@/components/tenants/TenantTable";
 import { TenantFormData, Tenant } from "@/api/tenantApi";
 import { useToast } from "@/components/ui/use-toast";
+import { tenantApi } from "@/lib/api";
 
-// Sample tenant data
-const tenants = [
-  { id: "t-1", name: "Acme Corporation", company: "Acme Inc.", email: "contact@acme.com", users: 125, plan: "Enterprise", status: "Active", createdAt: "2023-01-15" },
-  { id: "t-2", name: "Globex Industries", company: "Globex Corp", email: "info@globex.com", users: 78, plan: "Professional", status: "Active", createdAt: "2023-02-20" },
-  { id: "t-3", name: "Wayne Enterprises", company: "Wayne Corp", email: "contact@wayne.com", users: 203, plan: "Enterprise", status: "Active", createdAt: "2023-03-05" },
-  { id: "t-4", name: "Stark Industries", company: "Stark Corp", email: "info@stark.com", users: 92, plan: "Professional", status: "Suspended", createdAt: "2023-03-18" },
-  { id: "t-5", name: "Umbrella Corp", company: "Umbrella Inc", email: "contact@umbrella.com", users: 45, plan: "Basic", status: "Active", createdAt: "2023-04-02" },
-];
+interface Tenant {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  users: number;
+  plan: string;
+  status: string;
+  createdAt: string;
+}
 
 const TenantsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [filteredTenants, setFilteredTenants] = useState(tenants);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [filteredTenants, setFilteredTenants] = useState<Tenant[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  
+  const [loading, setLoading] = useState(true);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [tenantsData, pendingRequests] = await Promise.all([
+          tenantApi.getTenants(),
+          tenantApi.getPendingTenantRequests()
+        ]);
+        setTenants(tenantsData);
+        setFilteredTenants(tenantsData);
+        setPendingApprovals(pendingRequests.length);
+      } catch (error) {
+        console.error('Error fetching tenants:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load tenants",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
+
   // Handle creating a new tenant
   const handleCreateTenant = async (data: TenantFormData) => {
     try {
-      console.log("Creating tenant with data:", data);
-      // Here you would call the API to create the tenant
-      // For now, we'll just simulate success
+      const newTenant = await tenantApi.createTenant(data);
+      setTenants([...tenants, newTenant]);
+      setFilteredTenants([...filteredTenants, newTenant]);
       toast({
         title: "Tenant Created",
         description: `Successfully created ${data.name}`,
@@ -46,24 +78,22 @@ const TenantsPage = () => {
       });
     }
   };
-  
+
   // Handle tenant editing
   const handleEditTenant = (tenant: Tenant) => {
-    console.log("Edit tenant:", tenant);
     navigate(`/tenant-details/${tenant.id}`);
   };
-  
+
   // Handle tenant deletion
   const handleDeleteTenant = async (id: string) => {
     try {
-      console.log("Deleting tenant:", id);
-      // Here you would call the API to delete the tenant
-      // For now, we'll just simulate success
+      await tenantApi.deleteTenant(id);
+      setTenants(tenants.filter(t => t.id !== id));
+      setFilteredTenants(filteredTenants.filter(t => t.id !== id));
       toast({
         title: "Tenant Deleted",
         description: "Tenant has been successfully deleted",
       });
-      setFilteredTenants(filteredTenants.filter(t => t.id !== id));
     } catch (error) {
       console.error("Error deleting tenant:", error);
       toast({
@@ -73,20 +103,21 @@ const TenantsPage = () => {
       });
     }
   };
-  
+
   // Handle tenant activation
   const handleActivateTenant = async (id: string) => {
     try {
-      console.log("Activating tenant:", id);
-      // Here you would call the API to activate the tenant
-      // For now, we'll just simulate success
+      await tenantApi.activateTenant(id);
+      setTenants(tenants.map(t => 
+        t.id === id ? { ...t, status: "Active" } : t
+      ));
+      setFilteredTenants(filteredTenants.map(t => 
+        t.id === id ? { ...t, status: "Active" } : t
+      ));
       toast({
         title: "Tenant Activated",
         description: "Tenant has been successfully activated",
       });
-      setFilteredTenants(filteredTenants.map(t => 
-        t.id === id ? { ...t, status: "Active" } : t
-      ));
     } catch (error) {
       console.error("Error activating tenant:", error);
       toast({
@@ -96,20 +127,21 @@ const TenantsPage = () => {
       });
     }
   };
-  
+
   // Handle tenant suspension
   const handleSuspendTenant = async (id: string) => {
     try {
-      console.log("Suspending tenant:", id);
-      // Here you would call the API to suspend the tenant
-      // For now, we'll just simulate success
+      await tenantApi.suspendTenant(id);
+      setTenants(tenants.map(t => 
+        t.id === id ? { ...t, status: "Suspended" } : t
+      ));
+      setFilteredTenants(filteredTenants.map(t => 
+        t.id === id ? { ...t, status: "Suspended" } : t
+      ));
       toast({
         title: "Tenant Suspended",
         description: "Tenant has been suspended",
       });
-      setFilteredTenants(filteredTenants.map(t => 
-        t.id === id ? { ...t, status: "Suspended" } : t
-      ));
     } catch (error) {
       console.error("Error suspending tenant:", error);
       toast({
@@ -119,17 +151,17 @@ const TenantsPage = () => {
       });
     }
   };
-  
+
   // Handle tenant user management
   const handleManageUsers = (id: string) => {
     navigate(`/tenant-user-management/${id}`);
   };
-  
+
   // Handle tenant settings
   const handleManageSettings = (id: string) => {
     navigate(`/tenant-settings/${id}`);
   };
-  
+
   // Handle search and filters
   const handleSearch = (query: string) => {
     if (!query.trim()) {
@@ -146,7 +178,7 @@ const TenantsPage = () => {
     
     setFilteredTenants(filtered);
   };
-  
+
   const handleFilterChange = (filter: string, value: string) => {
     if (value === "all") {
       setFilteredTenants(tenants);
@@ -168,13 +200,20 @@ const TenantsPage = () => {
     
     setFilteredTenants(filtered);
   };
-  
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   // Stats calculations
   const totalTenants = tenants.length;
   const activeTenants = tenants.filter(t => t.status === "Active").length;
-  const pendingApprovals = 8; // Sample data
   const totalUsers = tenants.reduce((sum, tenant) => sum + tenant.users, 0);
-  
+
   return (
     <div className="w-full max-w-full overflow-hidden space-y-4 p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

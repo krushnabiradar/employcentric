@@ -14,8 +14,8 @@ const {
 // Protected routes
 router.get('/today', protect(), getTodayAttendance);
 router.get('/stats', protect(['admin', 'hr']), getAttendanceStats);
-router.get('/:employeeId', protect, getMonthlyAttendance);
-router.post('/check-in', protect, checkIn);
-router.post('/check-out', protect, checkOut);
+router.get('/:employeeId', protect(), getMonthlyAttendance); // Fixed: Added ()
+router.post('/check-in', protect(), checkIn); // Fixed: Added ()
+router.post('/check-out', protect(), checkOut); // Fixed: Added ()
 
 module.exports = router;
