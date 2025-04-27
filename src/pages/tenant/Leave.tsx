@@ -39,7 +39,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import TenantDashboardLayout from "@/components/layouts/tenant/TenantDashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -119,7 +118,7 @@ const LeaveManagement = () => {
         withCredentials: true
       });
       
-      setLeaveRequests(response.data);
+      setLeaveRequests(response.data.data);
     } catch (error) {
       console.error("Error fetching leave requests:", error);
       toast({
